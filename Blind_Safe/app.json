@@ -4,10 +4,10 @@
     "slug": "Blind_Safe",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/blindsafe.png",
+    "icon": "./assets/blindSafeLogo2.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/blindsafe.png",
+      "image": "./assets/blindSafeLogo2.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -19,7 +19,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/blindsafe.png",
+        "foregroundImage": "./assets/blindSafeLogo2.png",
         "backgroundColor": "#ffffff"
       }
     },

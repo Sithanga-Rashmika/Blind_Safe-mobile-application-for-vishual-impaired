@@ -1,9 +1,7 @@
-from flask import Flask, send_file
-from PIL import Image, ImageFilter, ImageOps
+from flask import Flask, request, send_file
 from ultralytics import YOLO
 import os
 import shutil
-import io
 import cv2
 import google.generativeai as genai
 import time
@@ -16,74 +14,81 @@ wound_model =  YOLO("wound_detection.pt")
 directory = os.getcwd()
 
 
-
-
-
-@app.route('/injury-detection')
+@app.route('/injury-detection', methods=['POST'])
 def index():
-    
-    start_time = time.time()
-    timeout = 3
-    cap =cv2.VideoCapture('v5.mp4')
-    image_files = [] 
-    wound_type = "Could not detect the injury..!"
-    final_val = ""
-    
-    while(cap.isOpened()):
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        # Process the frame with the injury model
-        injury_model.predict(source=frame, conf=0.5, save_crop=True)
-        # Path to the directory containing the predicted images
-        image_directory = './runs/detect/predict/crops'
-        exist_files = os.path.exists(image_directory)
+    if request.method == 'POST':
+        start_time = time.time()
+        timeout = 8
+        cap =cv2.VideoCapture(0)
+        image_files = [] 
+        wound_type = "Could not detect the injury..!"
+        final_val = ""
         
-        if exist_files:
-            print("detected")
-            break
-        else:
-            if time.time() - start_time > timeout:
-                print("Timeout reached. Exiting loop.")
+        while(cap.isOpened()):
+            ret, frame = cap.read()
+            if not ret:
                 break
+
+            # Process the frame with the injury model
+            injury_model.predict(source=frame, conf=0.5, save_crop=True)
+            # Path to the directory containing the predicted images
+            image_directory = './runs/detect/predict/crops'
+            exist_files = os.path.exists(image_directory)
             
-    # Release the video capture object
-    cap.release()
+            if exist_files:
+                print("detected")
+                break
+            else:
+                if time.time() - start_time > timeout:
+                    print("Timeout reached. Exiting loop.")
+                    break
+                
+        # Release the video capture object
+        cap.release()
 
-    image_directory2 = './runs/detect/predict/crops/injury'
-    files = os.path.exists(image_directory2)
-    if files:
-        files2 = os.listdir(image_directory2)
-        image_files = [file for file in files2 if file.endswith(('.jpg', '.jpeg', '.png', '.gif'))]
-    else:
-        print("Injury not detected..!")
-    # Check if there are any image files
-    if not image_files:
-        print("No image files found in the directory.")
-    else:
-        # Open and display the first image
-        img1_path = os.path.join(image_directory2, image_files[0])
-        
-        #pass the image into wound detection model
-        wound_model.predict(source=img1_path, save=True, conf=0.5, save_crop=True)
-        # Path to the 'crops' directory
-        crops_directory = r'./runs/detect/predict2/crops'
-
-        # Get a list of directories inside the 'crops' directory
-        subdirectories = [subdir for subdir in os.listdir(crops_directory) if os.path.isdir(os.path.join(crops_directory, subdir))]
-
-        # Assuming there's only one directory inside 'crops'
-        if len(subdirectories) > 0:
-            wound_type = subdirectories[0]
-            print("Wound Type:", wound_type)
-            final_val = upload_to_gemini(img1_path, wound_type)
-
+        image_directory2 = './runs/detect/predict/crops/injury'
+        files = os.path.exists(image_directory2)
+        if files:
+            files2 = os.listdir(image_directory2)
+            image_files = [file for file in files2 if file.endswith(('.jpg', '.jpeg', '.png', '.gif'))]
         else:
-            print("No detect the wound type..!")
-    
+            print("Injury not detected..!")
+        # Check if there are any image files
+        if not image_files:
+            print("No image files found in the directory.")
+        else:
+            # Open and display the first image
+            img1_path = os.path.join(image_directory2, image_files[0])
+            
+            #pass the image into wound detection model
+            wound_model.predict(source=img1_path, save=True, conf=0.5, save_crop=True)
+            # Path to the 'crops' directory
+            crops_directory = r'./runs/detect/predict2/crops'
+
+            # Get a list of directories inside the 'crops' directory
+            subdirectories = [subdir for subdir in os.listdir(crops_directory) if os.path.isdir(os.path.join(crops_directory, subdir))]
+
+            # Assuming there's only one directory inside 'crops'
+            if len(subdirectories) > 0:
+                wound_type = subdirectories[0]
+                print("Wound Type:", wound_type)
+                final_val = upload_to_gemini(img1_path, wound_type)
+
+            else:
+                print("No detect the wound type..!")
+        
+            # delete the directory
+            directory_path = './runs/detect/predict2'
+
+            try:
+                shutil.rmtree(directory_path)
+                print(f"Directory '{directory_path}' and its contents successfully deleted.")
+            except OSError as e:
+                print(f"Error: {directory_path} : {e.strerror}")
+                
+            
         # delete the directory
-        directory_path = './runs/detect/predict2'
+        directory_path = './runs/detect/predict'
 
         try:
             shutil.rmtree(directory_path)
@@ -91,18 +96,8 @@ def index():
         except OSError as e:
             print(f"Error: {directory_path} : {e.strerror}")
             
-        
-    # delete the directory
-    directory_path = './runs/detect/predict'
 
-    try:
-        shutil.rmtree(directory_path)
-        print(f"Directory '{directory_path}' and its contents successfully deleted.")
-    except OSError as e:
-        print(f"Error: {directory_path} : {e.strerror}")
-        
-
-    return f"Detected wound type is:{wound_type}  and  {final_val}"
+        return f"Detected wound type is:{wound_type}  and  {final_val}", 200
 
 #function image upload to gemini
 
@@ -149,7 +144,7 @@ def upload_to_gemini(image_path, text):
     convo.send_message(image_data)
     # print(convo.last.text)
     return convo.last.text
-    
+ 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)

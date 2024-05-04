@@ -15,9 +15,17 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow access to the camera to take photos",
+        "NSMicrophoneUsageDescription": "Allow access to the microphone to record audio"
+      }
     },
     "android": {
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO" 
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/blindSafeLogo2.png",
         "backgroundColor": "#ffffff"
@@ -25,6 +33,16 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+          "recordAudioAndroid": true
+        }
+      ]
+    ]
   }
 }

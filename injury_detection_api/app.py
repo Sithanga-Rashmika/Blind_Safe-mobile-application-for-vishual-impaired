@@ -54,6 +54,7 @@ def index():
             image_files = [file for file in files2 if file.endswith(('.jpg', '.jpeg', '.png', '.gif'))]
         else:
             print("Injury not detected..!")
+            wound_type = "Injury not detected..!"
         # Check if there are any image files
         if not image_files:
             print("No image files found in the directory.")

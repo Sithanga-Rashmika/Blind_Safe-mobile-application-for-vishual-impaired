@@ -4,11 +4,19 @@ import { View, Image, StyleSheet, Text, Alert } from "react-native";
 import { DeprecatedViewPropTypes } from "deprecated-react-native-prop-types";
 import { Camera, CameraType } from "expo-camera";
 import axios from "axios";
+import * as Speech from "expo-speech";
 
 export default function InjuryScreen(props) {
   const [startCamera, setStartCamera] = useState(false);
   const [loading, setLoading] = useState(false);
   const cameraRef = useRef(null);
+
+  useEffect(() => {
+    Speech.speak(
+      "Welcome to the Injury Detection page. Injury scanner will start when you double tap the screen",
+      { rate: 1 }
+    );
+  }, []);
 
   useEffect(() => {
     __startCamera();
@@ -43,7 +51,7 @@ export default function InjuryScreen(props) {
   //       const { uri } = await cameraRef.current.recordAsync({quality: '360p'});
   //       if (isMounted) {
   //         sendFrameToBackend(uri);
-  //         setTimeout(sendFrames, 1000); 
+  //         setTimeout(sendFrames, 1000);
   //       }
   //     }
   //   };
@@ -57,18 +65,18 @@ export default function InjuryScreen(props) {
   //   };
   // }, [startCamera]);
 
-
-
-  // //sattic test 
+  // //sattic test
   const [injuryDetected, setInjuryDetected] = useState(false);
 
   useEffect(() => {
-    handleInjuryDetection(); 
-  }, []); 
+    handleInjuryDetection();
+  }, []);
 
   const handleInjuryDetection = async () => {
     try {
-      const response = await axios.post('http://192.168.8.160:5000/injury-detection');
+      const response = await axios.post(
+        "http://192.168.8.160:5000/injury-detection"
+      );
       // Handle response
       console.log(response.data);
       setInjuryDetected(true);

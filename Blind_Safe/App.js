@@ -11,6 +11,7 @@ import InjuryScreen from './screens/injuryScreen'
 const Stack = createStackNavigator();
 
 export default function App() {
+
   return (
     <NavigationContainer>
       <View style={styles.container}>

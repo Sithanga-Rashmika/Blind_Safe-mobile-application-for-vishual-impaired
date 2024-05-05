@@ -16,10 +16,11 @@ directory = os.getcwd()
 
 @app.route('/injury-detection', methods=['POST'])
 def index():
+    print("request came")
     if request.method == 'POST':
         start_time = time.time()
         timeout = 8
-        cap =cv2.VideoCapture(0)
+        cap =cv2.VideoCapture('v5.mp4')
         image_files = [] 
         wound_type = "Could not detect the injury..!"
         final_val = ""
@@ -140,9 +141,8 @@ def upload_to_gemini(image_path, text):
     # Start a conversation with the image data
     convo = model.start_chat(history=[])
 
-    convo.send_message(f"here image that i provide is {text} wound now i want to get small description status about the wound? do not provide too much text just small description i need paragraph do not pointform?")
+    convo.send_message(f"here image that i provide is {text} wound, now i want to get small description status about the wound like what kind of wound what should you do small steps give like maximum 50 words? do not provide too much text just small description i need paragraph do not pointform?")
     convo.send_message(image_data)
-    # print(convo.last.text)
     return convo.last.text
  
 

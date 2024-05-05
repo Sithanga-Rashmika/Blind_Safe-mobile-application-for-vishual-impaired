@@ -5,17 +5,20 @@ import * as Location from "expo-location";
 import MapViewStyle from "../utils/map-config.json";
 import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
 import Voice from "@react-native-voice/voice";
-import * as Speech from 'expo-speech';
+import * as Speech from "expo-speech";
+import MapViewDirections from 'react-native-maps-directions';
+
 
 const PublicTransportNavigation = () => {
-  const [stage, setStage] = useState(0);
+  const [stage, setStage] = useState(2);
   const [destination, setDestination] = useState("");
   const [transportMethod, setTransportMethod] = useState("");
   const [coordinates, setCoordinates] = useState([]);
   const [waitingForInput, setWaitingForInput] = useState(false);
   const [location, setLocation] = useState(null);
   const [searchedLocation, setSearchedLocation] = useState(null);
-
+  const dest = {latitude: 7.290572, longitude: 80.633728};
+  const GOOGLE_MAPS_APIKEY = "AIzaSyD411Sx1eEwFu6XdwaW0Hv50uzk78sU1LQ"
   useEffect(() => {
     (async () => {
       let { status } = await Location.requestForegroundPermissionsAsync();
@@ -31,13 +34,17 @@ const PublicTransportNavigation = () => {
 
   useEffect(() => {
     if (stage === 0 || stage === 1) {
-      handleSpeechInput(stage === 0 ? "Where do you want to go?" : "What is your preferred transport method?");
+      handleSpeechInput(
+        stage === 0
+          ? "Where do you want to go?"
+          : "What is your preferred transport method?"
+      );
     }
   }, [stage]);
 
   const handleSpeechInput = async (question) => {
     try {
-      await Speech.speak(question, { language: 'en' });
+      await Speech.speak(question, { language: "en" });
       await Voice.start("en-US");
       Voice.onSpeechResults = onSpeechResults;
       setWaitingForInput(true);
@@ -100,7 +107,7 @@ const PublicTransportNavigation = () => {
               }
             }}
             query={{
-              key: "YOUR_API_KEY",
+              key: "AIzaSyD411Sx1eEwFu6XdwaW0Hv50uzk78sU1LQ",
               language: "en",
             }}
           />
@@ -122,6 +129,11 @@ const PublicTransportNavigation = () => {
             }}
             customMapStyle={MapViewStyle}
           >
+            <MapViewDirections
+              origin={location}
+              destination={dest}
+              apikey="AIzaSyD411Sx1eEwFu6XdwaW0Hv50uzk78sU1LQ"
+            />
             <Marker
               coordinate={{
                 latitude: location?.latitude,
@@ -144,7 +156,7 @@ const PublicTransportNavigation = () => {
               />
             )}
           </MapView>
-          
+
           <Text style={styles.text}>Destination: {destination}</Text>
           <Text style={styles.text}>Transport Method: {transportMethod}</Text>
         </>
@@ -178,7 +190,7 @@ const styles = StyleSheet.create({
     height: 30,
     position: "absolute",
     top: 50,
-  }
+  },
 });
 
 export default PublicTransportNavigation;

@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Button, TextInput, Image } from "react-native";
+import { View, Text, StyleSheet, Image, ActivityIndicator } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE, Polyline } from "react-native-maps";
 import * as Location from "expo-location";
+import MapViewStyle from "../utils/map-config.json";
+import { GooglePlacesAutocomplete } from "react-native-google-places-autocomplete";
+import Voice from "@react-native-voice/voice";
+import * as Speech from 'expo-speech';
 
 const PublicTransportNavigation = () => {
   const [stage, setStage] = useState(0);
@@ -10,7 +14,7 @@ const PublicTransportNavigation = () => {
   const [coordinates, setCoordinates] = useState([]);
   const [waitingForInput, setWaitingForInput] = useState(false);
   const [location, setLocation] = useState(null);
-  const [errorMsg, setErrorMsg] = useState(null);
+  const [searchedLocation, setSearchedLocation] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -25,75 +29,80 @@ const PublicTransportNavigation = () => {
     })();
   }, []);
 
-  let text = "Waiting..";
-  if (errorMsg) {
-    text = errorMsg;
-  } else if (location) {
-    text = JSON.stringify(location);
-  }
-
   useEffect(() => {
-    setWaitingForInput(true);
-  }, []);
+    if (stage === 0 || stage === 1) {
+      handleSpeechInput(stage === 0 ? "Where do you want to go?" : "What is your preferred transport method?");
+    }
+  }, [stage]);
 
-  const handleDestinationInput = (text) => {
-    setDestination(text);
+  const handleSpeechInput = async (question) => {
+    try {
+      await Speech.speak(question, { language: 'en' });
+      await Voice.start("en-US");
+      Voice.onSpeechResults = onSpeechResults;
+      setWaitingForInput(true);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  const handleTransportMethodInput = (text) => {
-    setTransportMethod(text);
+  const onSpeechResults = (event) => {
+    const result = event.value[0];
+    if (stage === 0) {
+      setDestination(result);
+      setStage(1);
+    } else if (stage === 1) {
+      setTransportMethod(result);
+      setStage(2);
+    }
+    Voice.stop();
+    setWaitingForInput(false);
   };
 
   const handleSubmit = () => {
-    if (stage === 0 && destination.trim() !== "") {
-      setStage(1);
-      return;
-    }
-    if (stage === 1 && transportMethod.trim() !== "") {
-      setWaitingForInput(false);
-      setStage(2);
-      getDirections(transportMethod);
-      return;
-    }
-  };
-
-  const getDirections = (transport) => {
-    // Make API call to Google Directions API
-    // Update coordinates state with the polyline coordinates from the response
+    // Handle submission if needed
   };
 
   return (
     <View style={styles.container}>
-      {stage === 0 && (
-        <>
-          <Text style={styles.text}>Where do you want to go?</Text>
-          <TextInput
-            style={styles.input}
-            onChangeText={handleDestinationInput}
-            value={destination}
-            placeholder="Enter destination"
-          />
-        </>
-      )}
-      {stage === 1 && (
-        <>
-          <Text style={styles.text}>
-            What is your preferred transport method? (e.g., bus, train)
-          </Text>
-          <TextInput
-            style={styles.input}
-            onChangeText={handleTransportMethodInput}
-            value={transportMethod}
-            placeholder="Enter transport method"
-          />
-        </>
+      {(stage === 0 || stage === 1) && (
+        <Image
+          source={require("../assets/blindSafeLogo.png")}
+          style={styles.appLogo}
+        />
       )}
       {stage === 2 && (
+        <Image
+          source={require("../assets/blindSafeLogo.png")}
+          style={styles.appHeader}
+        />
+      )}
+      {waitingForInput && <ActivityIndicator size="large" color="#0000ff" />}
+      {stage === 2 && (
         <>
-          {/* App logo */}
-          <Image
-            source={require("../assets/blindSafeLogo.png")}
-            style={styles.appLogo}
+          <GooglePlacesAutocomplete
+            styles={{
+              container: {
+                flex: 0,
+                width: "100%",
+                top: 0,
+                paddingHorizontal: 10,
+              },
+            }}
+            enablePoweredByContainer={false}
+            placeholder="Search"
+            onPress={(data, details = null) => {
+              console.log(data);
+              if (details && details.geometry && details.geometry.location) {
+                const latitude = details.geometry.location.lat;
+                const longitude = details.geometry.location.lng;
+                setSearchedLocation({ latitude, longitude });
+              }
+            }}
+            query={{
+              key: "YOUR_API_KEY",
+              language: "en",
+            }}
           />
           <MapView
             provider={PROVIDER_GOOGLE}
@@ -111,18 +120,22 @@ const PublicTransportNavigation = () => {
               latitudeDelta: 0.0422,
               longitudeDelta: 0.0421,
             }}
+            customMapStyle={MapViewStyle}
           >
             <Marker
               coordinate={{
                 latitude: location?.latitude,
                 longitude: location?.longitude,
               }}
-            >
-              <Image
-                source={require("../assets/user.png")}
-                style={{ width: 40, height: 40 }}
+            />
+            {searchedLocation && (
+              <Marker
+                coordinate={{
+                  latitude: searchedLocation.latitude,
+                  longitude: searchedLocation.longitude,
+                }}
               />
-            </Marker>
+            )}
             {coordinates.length > 0 && (
               <Polyline
                 coordinates={coordinates}
@@ -131,14 +144,11 @@ const PublicTransportNavigation = () => {
               />
             )}
           </MapView>
+          
           <Text style={styles.text}>Destination: {destination}</Text>
           <Text style={styles.text}>Transport Method: {transportMethod}</Text>
         </>
       )}
-      {waitingForInput && (
-        <Text style={styles.text}>Waiting for your input...</Text>
-      )}
-      <Button title="Submit" onPress={handleSubmit} />
     </View>
   );
 };
@@ -153,30 +163,22 @@ const styles = StyleSheet.create({
     fontSize: 20,
     marginBottom: 10,
   },
-  input: {
-    height: 40,
-    width: 200,
-    borderColor: "gray",
-    borderWidth: 1,
-    marginBottom: 20,
-    paddingHorizontal: 10,
-  },
   map: {
     flex: 1,
     width: "100%",
   },
-  header: {
-    padding: 10,
-    width: "100%",
-    height: 100,
-    top: 30,
-  },
-  appLogo: {
+  appHeader: {
     width: 200,
     height: 30,
     marginTop: 50,
     marginBottom: 20,
   },
+  appLogo: {
+    width: 200,
+    height: 30,
+    position: "absolute",
+    top: 50,
+  }
 });
 
 export default PublicTransportNavigation;

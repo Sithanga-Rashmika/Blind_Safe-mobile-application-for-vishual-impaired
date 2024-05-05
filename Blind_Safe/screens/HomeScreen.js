@@ -1,10 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { View, Image, StyleSheet, TouchableOpacity, Text, Vibration, Animated } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
+import { useNavigation } from '@react-navigation/native';
 
 const HomeScreen = () => {
   const [swipedDirection, setSwipedDirection] = useState(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const navigation = useNavigation();
 
   // Function to handle swipe actions
   const handleSwipe = (direction) => {
@@ -19,6 +21,7 @@ const HomeScreen = () => {
         break;
       case 'left':
         console.log('Function 3');
+        navigation.navigate('PublicTransport'); // Navigate to PublicTransportNavigation
         break;
       case 'right':
         console.log('Function 4');
